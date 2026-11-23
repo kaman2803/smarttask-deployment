@@ -1,0 +1,59 @@
+services:
+  db:
+    image: kaman2803/smarttask-database:Prod-2
+    platform: linux/amd64
+    container_name: smarttask_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - smarttask_db_data:/var/lib/mysql
+    networks:
+      - smarttask_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: kaman2803/smarttask-backend:Prod-2
+    platform: linux/amd64
+    container_name: smarttask_backend
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    ports:
+      - "5000:5000"
+    networks:
+      - smarttask_network
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: kaman2803/smarttask-frontend:Prod-2
+    platform: linux/amd64
+    container_name: smarttask_frontend
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    networks:
+      - smarttask_network
+    depends_on:
+      - backend
+
+networks:
+  smarttask_network:
+    driver: bridge
+
+volumes:
+  smarttask_db_data:
